@@ -964,15 +964,14 @@ EOF
         proxy_redirect                      off;
       }"
 
-  # 👇 修改开始：判断是否开启订阅
+  
+  # 订阅逻辑 (只在开启时生成)
   if [ "$ENABLE_SUBSCRIBE" != "false" ]; then
       NGINX_CONF+="
-      # 来自 /auto 的分流
       location ~ ^/${UUID}/auto {
         default_type 'text/plain; charset=utf-8';
         alias ${WORK_DIR}/subscribe/\$path;
       }
-
       location ~ ^/${UUID}/(.*) {
         autoindex on;
         proxy_set_header X-Real-IP \$proxy_protocol_addr;
@@ -981,9 +980,17 @@ EOF
       }
       "
   fi
-  # 👆 修改结束
 
-  # 👇 无论是否开启订阅，都必须闭合 server 和 http 标签
+  # 2. 统一的兜底拦截规则
+  # 这个 location / 会匹配所有未被上面规则捕获的请求
+  # 包括：根目录、错误的 UUID、瞎写的路径
+  NGINX_CONF+="
+      location / {
+          return 444;
+      }
+  "
+
+  # 3. 闭合标签
   NGINX_CONF+="
     }
   }"
