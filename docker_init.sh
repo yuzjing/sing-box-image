@@ -2,6 +2,7 @@
 # 脚本更新日期 2025.12.14
 set -e
 
+ENABLE_SUBSCRIBE=${ENABLE_SUBSCRIBE:-true} 
 WORK_DIR=/sing-box
 PORT=$START_PORT
 SUBSCRIBE_TEMPLATE="https://raw.githubusercontent.com/fscarmen/client_template/main"
@@ -963,7 +964,9 @@ EOF
         proxy_redirect                      off;
       }"
 
-  NGINX_CONF+="
+  # 👇 修改开始：判断是否开启订阅
+  if [ "$ENABLE_SUBSCRIBE" != "false" ]; then
+      NGINX_CONF+="
       # 来自 /auto 的分流
       location ~ ^/${UUID}/auto {
         default_type 'text/plain; charset=utf-8';
@@ -976,6 +979,12 @@ EOF
         default_type 'text/plain; charset=utf-8';
         alias ${WORK_DIR}/subscribe/\$1;
       }
+      "
+  fi
+  # 👆 修改结束
+
+  # 👇 无论是否开启订阅，都必须闭合 server 和 http 标签
+  NGINX_CONF+="
     }
   }"
 
